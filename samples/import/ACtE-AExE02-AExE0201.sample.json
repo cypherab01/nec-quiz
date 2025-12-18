@@ -4,11 +4,9 @@
   "subjectName": "Computer Engineering",
   "unitCode": "AExE02",
   "unitName": "Digital Logic and Microprocessor",
-  "topicCode": "AExE0201",
-  "topicName": "Digital logic",
   "questions": [
     {
-      "externalId": "AExE02-AExE0201-0001",
+      "externalId": "AExE02-0001",
       "prompt": "Binary number 1011 is equivalent to decimal:",
       "choices": ["11", "10", "12", "13"],
       "correctIndex": 0,
@@ -18,7 +16,7 @@
       "references": ["NEC syllabus AExE0201: Number Systems"]
     },
     {
-      "externalId": "AExE02-AExE0201-0002",
+      "externalId": "AExE02-0002",
       "prompt": "Which logic gate outputs 1 only when all inputs are 1?",
       "choices": ["AND", "OR", "XOR", "NAND"],
       "correctIndex": 0,
@@ -28,7 +26,7 @@
       "references": ["NEC syllabus AExE0201: Logic Gates"]
     },
     {
-      "externalId": "AExE02-AExE0201-0003",
+      "externalId": "AExE02-0003",
       "prompt": "Boolean expression for OR of A and B is:",
       "choices": ["A + B", "A · B", "A ⊕ B", "A̅"],
       "correctIndex": 0,
@@ -38,7 +36,7 @@
       "references": ["NEC syllabus AExE0201: Boolean algebra"]
     },
     {
-      "externalId": "AExE02-AExE0201-0004",
+      "externalId": "AExE02-0004",
       "prompt": "A SOP (Sum of Products) form is:",
       "choices": [
         "OR of multiple AND terms",
@@ -53,7 +51,7 @@
       "references": ["NEC syllabus AExE0201: Sum-of-Products Method"]
     },
     {
-      "externalId": "AExE02-AExE0201-0005",
+      "externalId": "AExE02-0005",
       "prompt": "Karnaugh maps are primarily used to:",
       "choices": [
         "Minimize Boolean expressions",

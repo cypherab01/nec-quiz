@@ -7,8 +7,6 @@ type ImportPayloadV1 = {
   subjectName: string;
   unitCode: string;
   unitName: string;
-  topicCode: string;
-  topicName: string;
   questions: Array<{
     externalId: string;
     prompt: string;
@@ -50,23 +48,22 @@ function parsePayload(body: unknown): ImportPayloadV1 {
     ["subjectName", b.subjectName],
     ["unitCode", b.unitCode],
     ["unitName", b.unitName],
-    ["topicCode", b.topicCode],
-    ["topicName", b.topicName],
   ];
   for (const [k, v] of requiredStrings) {
     if (!isNonEmptyString(v)) throw new Error(`\`${String(k)}\` is required.`);
   }
 
-  if (!Array.isArray(b.questions) || b.questions.length === 0) {
+  const questions = b.questions;
+  if (!Array.isArray(questions) || questions.length === 0) {
     throw new Error("`questions` must be a non-empty array.");
   }
 
   const externalIds = new Set<string>();
 
-  b.questions.forEach((q, idx) => {
+  questions.forEach((q, idx) => {
     if (!q || typeof q !== "object")
       throw new Error(`questions[${idx}] invalid`);
-    const qq = q as ImportPayloadV1["questions"][number];
+    const qq = q;
 
     if (!isNonEmptyString(qq.externalId))
       throw new Error(`questions[${idx}].externalId is required`);
@@ -109,7 +106,14 @@ function parsePayload(body: unknown): ImportPayloadV1 {
     }
   });
 
-  return b as ImportPayloadV1;
+  return {
+    version: "v1",
+    subjectCode: b.subjectCode!,
+    subjectName: b.subjectName!,
+    unitCode: b.unitCode!,
+    unitName: b.unitName!,
+    questions,
+  };
 }
 
 export async function POST(request: Request) {
@@ -137,15 +141,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const {
-    subjectCode,
-    subjectName,
-    unitCode,
-    unitName,
-    topicCode,
-    topicName,
-    questions,
-  } = payload;
+  const { subjectCode, subjectName, unitCode, unitName, questions } = payload;
 
   const result = await prisma.$transaction(async (tx) => {
     const subject = await tx.subject.upsert({
@@ -162,18 +158,11 @@ export async function POST(request: Request) {
       select: { id: true },
     });
 
-    const topic = await tx.topic.upsert({
-      where: { unitId_code: { unitId: unit.id, code: topicCode } },
-      create: { unitId: unit.id, code: topicCode, name: topicName },
-      update: { name: topicName },
-      select: { id: true },
-    });
-
     const ops = questions.map((q) =>
       tx.question.upsert({
         where: { externalId: q.externalId },
         create: {
-          topicId: topic.id,
+          unitId: unit.id,
           externalId: q.externalId,
           prompt: q.prompt,
           choices: q.choices,
@@ -185,7 +174,7 @@ export async function POST(request: Request) {
           isActive: true,
         },
         update: {
-          topicId: topic.id,
+          unitId: unit.id,
           prompt: q.prompt,
           choices: q.choices,
           correctIndex: q.correctIndex,
@@ -199,12 +188,11 @@ export async function POST(request: Request) {
       })
     );
 
-    const upserted = await tx.$transaction(ops);
+    const upserted = await Promise.all(ops);
 
     return {
       subjectId: subject.id,
       unitId: unit.id,
-      topicId: topic.id,
       questionsUpserted: upserted.length,
     };
   });

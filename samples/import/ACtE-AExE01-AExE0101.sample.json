@@ -4,11 +4,9 @@
   "subjectName": "Computer Engineering",
   "unitCode": "AExE01",
   "unitName": "Concept of Basic Electrical and Electronics Engineering",
-  "topicCode": "AExE0101",
-  "topicName": "Basic concept",
   "questions": [
     {
-      "externalId": "AExE01-AExE0101-0001",
+      "externalId": "AExE01-0001",
       "prompt": "Ohm’s law relates which quantities?",
       "choices": [
         "Voltage, current, and resistance",
@@ -20,10 +18,10 @@
       "explanation": "Ohm’s law is V = I·R, relating voltage (V), current (I), and resistance (R).",
       "difficulty": "easy",
       "tags": ["ohms-law", "basics"],
-      "references": ["NEC syllabus AExE01: Basic concept"]
+      "references": ["NEC syllabus AExE01"]
     },
     {
-      "externalId": "AExE01-AExE0101-0002",
+      "externalId": "AExE01-0002",
       "prompt": "Unit of electric current is:",
       "choices": ["Ampere", "Volt", "Ohm", "Watt"],
       "correctIndex": 0,
@@ -33,7 +31,7 @@
       "references": ["NEC syllabus AExE01: electric voltage current"]
     },
     {
-      "externalId": "AExE01-AExE0101-0003",
+      "externalId": "AExE01-0003",
       "prompt": "In a series circuit, which quantity remains the same through all components?",
       "choices": ["Current", "Voltage", "Power", "Resistance"],
       "correctIndex": 0,
@@ -45,7 +43,7 @@
       ]
     },
     {
-      "externalId": "AExE01-AExE0101-0004",
+      "externalId": "AExE01-0004",
       "prompt": "Kirchhoff’s Current Law (KCL) states that at a node:",
       "choices": [
         "Sum of currents entering equals sum of currents leaving",
@@ -60,7 +58,7 @@
       "references": ["NEC syllabus AExE01: Kirchhoff’s law"]
     },
     {
-      "externalId": "AExE01-AExE0101-0005",
+      "externalId": "AExE01-0005",
       "prompt": "A bilateral circuit element behaves the same when its terminals are interchanged. Which element is bilateral?",
       "choices": ["Resistor", "Diode", "Transistor", "SCR"],
       "correctIndex": 0,

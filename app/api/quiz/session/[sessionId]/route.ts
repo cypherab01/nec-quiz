@@ -30,7 +30,6 @@ export async function GET(
       count: true,
       subject: { select: { code: true, name: true } },
       unitCode: true,
-      topicCode: true,
       questions: {
         orderBy: { orderIndex: "asc" },
         select: {
@@ -41,9 +40,7 @@ export async function GET(
               prompt: true,
               choices: true,
               difficulty: true,
-              topic: {
-                select: { code: true, unit: { select: { code: true } } },
-              },
+              unit: { select: { code: true } },
             },
           },
         },
@@ -57,6 +54,30 @@ export async function GET(
   if (new Date(session.expiresAt).getTime() < Date.now())
     return jsonError(410, "EXPIRED", "Quiz session expired. Start a new quiz.");
 
+  const attempt = await prisma.quizAttempt.findFirst({
+    where: { quizSessionId: session.id, userId },
+    orderBy: { submittedAt: "desc" },
+    select: {
+      id: true,
+      submittedAt: true,
+      correctCount: true,
+      totalCount: true,
+      answers: {
+        select: {
+          selectedIndex: true,
+          isCorrect: true,
+          question: {
+            select: {
+              externalId: true,
+              correctIndex: true,
+              explanation: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
   return Response.json({
     ok: true,
     data: {
@@ -67,11 +88,24 @@ export async function GET(
       count: session.count,
       subject: session.subject,
       unitCode: session.unitCode,
-      topicCode: session.topicCode,
       questions: session.questions.map((q) => ({
         orderIndex: q.orderIndex,
         ...q.question,
       })),
+      attempt: attempt
+        ? {
+            attemptId: attempt.id,
+            submittedAt: attempt.submittedAt,
+            score: { correct: attempt.correctCount, total: attempt.totalCount },
+            results: attempt.answers.map((a) => ({
+              externalId: a.question.externalId,
+              selectedIndex: a.selectedIndex,
+              correctIndex: a.question.correctIndex,
+              isCorrect: a.isCorrect,
+              explanation: a.question.explanation,
+            })),
+          }
+        : null,
     },
   });
 }

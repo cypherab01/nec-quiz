@@ -5,7 +5,6 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 type QuizSession = {
   sessionId: string;
@@ -16,7 +15,7 @@ type QuizSession = {
     prompt: string;
     choices: string[];
     difficulty: "easy" | "medium" | "hard" | null;
-    topic: { code: string; unit: { code: string } };
+    unit: { code: string };
   }>;
 };
 
@@ -57,7 +56,6 @@ function QuestionCard({
   explanation?: string | null;
   onSelect: (choiceIndex: number) => void;
 }) {
-  const radioValue = selectedIndex == null ? "" : String(selectedIndex);
   const cardId = `q_${q.externalId}`;
 
   return (
@@ -67,18 +65,12 @@ function QuestionCard({
           Q{index + 1}. {q.prompt}
         </CardTitle>
         <div className="text-xs text-muted-foreground">
-          {q.topic.unit.code} / {q.topic.code}
+          {q.unit.code}
           {q.difficulty ? ` • ${q.difficulty}` : ""}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <RadioGroup
-          value={radioValue}
-          onValueChange={(v) => {
-            if (isSubmitted) return;
-            onSelect(Number(v));
-          }}
-        >
+        <div role="radiogroup" aria-label={`Question ${index + 1}`}>
           {q.choices.map((choice, idx) => {
             const resolvedCorrectIndex =
               typeof correctIndex === "number" ? correctIndex : null;
@@ -90,6 +82,7 @@ function QuestionCard({
               <button
                 key={`${q.externalId}_${idx}`}
                 type="button"
+                aria-pressed={isChosen}
                 className={`flex w-full items-start gap-3 rounded-md p-3 text-left ${
                   isSubmitted ? "cursor-default" : "cursor-pointer"
                 } ${style}`}
@@ -98,12 +91,21 @@ function QuestionCard({
                   onSelect(idx);
                 }}
               >
-                <RadioGroupItem value={String(idx)} />
+                <span
+                  aria-hidden="true"
+                  className={`mt-1 inline-flex size-4 items-center justify-center rounded-full border ${
+                    isChosen ? "border-primary" : "border-input"
+                  }`}
+                >
+                  {isChosen ? (
+                    <span className="size-2 rounded-full bg-primary" />
+                  ) : null}
+                </span>
                 <div className="leading-6">{choice}</div>
               </button>
             );
           })}
-        </RadioGroup>
+        </div>
 
         {isSubmitted && explanation ? (
           <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm">
@@ -123,6 +125,7 @@ export function QuizClient({ sessionId }: { sessionId: string }) {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverResults, setServerResults] = useState<null | {
     score: { correct: number; total: number };
     byExternalId: Record<
@@ -144,6 +147,7 @@ export function QuizClient({ sessionId }: { sessionId: string }) {
       setServerResults(null);
       setSubmittedAt(null);
       setAnswers({});
+      setIsSubmitting(false);
 
       try {
         const res = await fetch(
@@ -165,7 +169,21 @@ export function QuizClient({ sessionId }: { sessionId: string }) {
           setSession(null);
           return;
         }
-        setSession(json.data as QuizSession);
+        const data = json.data as any;
+        setSession(data as QuizSession);
+
+        // If the session already has an attempt, lock it in "submitted" mode.
+        if (data?.attempt) {
+          const byExternalId: Record<string, any> = {};
+          const nextAnswers: Record<string, number> = {};
+          for (const r of data.attempt.results as Array<any>) {
+            byExternalId[r.externalId] = r;
+            nextAnswers[r.externalId] = r.selectedIndex;
+          }
+          setServerResults({ score: data.attempt.score, byExternalId });
+          setAnswers(nextAnswers);
+          setSubmittedAt(String(data.attempt.submittedAt));
+        }
       } catch (e) {
         setLoadError(e instanceof Error ? e.message : "Failed to load quiz.");
         setSession(null);
@@ -224,6 +242,14 @@ export function QuizClient({ sessionId }: { sessionId: string }) {
           <p className="text-sm text-muted-foreground">
             Answered {answeredCount}/{total} • Session {sessionId}
           </p>
+          <div className="mt-3 flex gap-2">
+            <Button variant="outline" asChild>
+              <Link href="/">Home</Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/leaderboard">Leaderboard</Link>
+            </Button>
+          </div>
         </div>
         <Button variant="outline" asChild>
           <Link href="/play">New quiz</Link>
@@ -249,7 +275,7 @@ export function QuizClient({ sessionId }: { sessionId: string }) {
             q={q}
             index={idx}
             selectedIndex={answers[q.externalId]}
-            isSubmitted={isSubmitted}
+            isSubmitted={isSubmitted || isSubmitting}
             correctIndex={
               serverResults?.byExternalId?.[q.externalId]?.correctIndex
             }
@@ -257,6 +283,7 @@ export function QuizClient({ sessionId }: { sessionId: string }) {
               serverResults?.byExternalId?.[q.externalId]?.explanation ?? null
             }
             onSelect={(choiceIndex) => {
+              if (isSubmitted || isSubmitting) return;
               setSubmitError(null);
               setAnswers((prev) => ({ ...prev, [q.externalId]: choiceIndex }));
             }}
@@ -317,20 +344,13 @@ export function QuizClient({ sessionId }: { sessionId: string }) {
 
           <div className="flex gap-2">
             {isSubmitted ? (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setSubmittedAt(null);
-                  setServerResults(null);
-                  setAnswers({});
-                  setSubmitError(null);
-                }}
-              >
-                Retake quiz
+              <Button asChild variant="outline">
+                <Link href="/play">Start new quiz</Link>
               </Button>
             ) : (
               <Button
                 onClick={() => {
+                  if (isSubmitting) return;
                   if (unanswered.length > 0) {
                     setSubmitError(
                       `You still have ${unanswered.length} unanswered question(s). Jump to them below and answer before submitting.`
@@ -342,6 +362,7 @@ export function QuizClient({ sessionId }: { sessionId: string }) {
                     return;
                   }
                   (async () => {
+                    setIsSubmitting(true);
                     setSubmitError(null);
                     try {
                       const payload = {
@@ -393,12 +414,14 @@ export function QuizClient({ sessionId }: { sessionId: string }) {
                           ? e.message
                           : "Failed to submit quiz."
                       );
+                    } finally {
+                      setIsSubmitting(false);
                     }
                   })();
                 }}
-                disabled={total === 0}
+                disabled={total === 0 || isSubmitting}
               >
-                Submit quiz
+                {isSubmitting ? "Submitting..." : "Submit quiz"}
               </Button>
             )}
           </div>

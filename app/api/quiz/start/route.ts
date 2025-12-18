@@ -5,8 +5,7 @@ type StartQuizBody = {
   subjectCode: string;
   mode: "random" | "unitWise";
   count: 25 | 50 | 75 | 100;
-  unitCode?: string;
-  topicCode?: string;
+  unitCodes?: string[];
 };
 
 function jsonError(status: number, code: string, message: string) {
@@ -31,12 +30,21 @@ function parseStartBody(body: unknown): StartQuizBody {
   if (b.count !== 25 && b.count !== 50 && b.count !== 75 && b.count !== 100) {
     throw new Error("`count` must be 25|50|75|100.");
   }
+  if (b.mode === "unitWise") {
+    if (!Array.isArray(b.unitCodes) || b.unitCodes.length === 0) {
+      throw new Error("`unitCodes` must be a non-empty string[] for unitWise.");
+    }
+    if (
+      !b.unitCodes.every((x) => typeof x === "string" && x.trim().length > 0)
+    ) {
+      throw new Error("`unitCodes` must contain only non-empty strings.");
+    }
+  }
   return {
     subjectCode: b.subjectCode,
     mode: b.mode,
     count: b.count,
-    unitCode: b.unitCode,
-    topicCode: b.topicCode,
+    unitCodes: b.unitCodes,
   };
 }
 
@@ -95,15 +103,9 @@ export async function POST(request: Request) {
   // Build a where-clause for scope.
   const where =
     mode === "random"
-      ? { topic: { unit: { subjectId: subject.id } }, isActive: true }
+      ? { unit: { subjectId: subject.id }, isActive: true }
       : {
-          topic: {
-            unit: {
-              subjectId: subject.id,
-              ...(b.unitCode ? { code: b.unitCode } : {}),
-            },
-            ...(b.topicCode ? { code: b.topicCode } : {}),
-          },
+          unit: { subjectId: subject.id, code: { in: b.unitCodes ?? [] } },
           isActive: true,
         };
 
@@ -116,7 +118,7 @@ export async function POST(request: Request) {
       prompt: true,
       choices: true,
       difficulty: true,
-      topic: { select: { code: true, unit: { select: { code: true } } } },
+      unit: { select: { code: true } },
     },
     take: Math.max(500, count * 2),
   });
@@ -143,8 +145,10 @@ export async function POST(request: Request) {
           subjectId: subject.id,
           mode,
           count,
-          unitCode: b.unitCode,
-          topicCode: b.topicCode,
+          unitCode:
+            mode === "unitWise" && b.unitCodes?.length === 1
+              ? b.unitCodes[0]
+              : null,
           expiresAt,
         },
         select: { id: true, createdAt: true, expiresAt: true },

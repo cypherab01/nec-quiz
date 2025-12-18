@@ -41,7 +41,7 @@ export async function GET(
       select: {
         code: true,
         name: true,
-        _count: { select: { topics: true } },
+        _count: { select: { questions: true } },
       },
     });
 

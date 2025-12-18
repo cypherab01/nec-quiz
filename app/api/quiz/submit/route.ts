@@ -65,6 +65,50 @@ function normalizeAnswers(
   return normalized;
 }
 
+async function getExistingAttemptResponse(input: {
+  quizSessionId: string;
+  userId: string;
+}) {
+  const attempt = await prisma.quizAttempt.findFirst({
+    where: { quizSessionId: input.quizSessionId, userId: input.userId },
+    orderBy: { submittedAt: "desc" },
+    select: {
+      id: true,
+      submittedAt: true,
+      correctCount: true,
+      totalCount: true,
+      answers: {
+        select: {
+          selectedIndex: true,
+          isCorrect: true,
+          question: {
+            select: {
+              externalId: true,
+              correctIndex: true,
+              explanation: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!attempt) return null;
+
+  return {
+    attemptId: attempt.id,
+    submittedAt: attempt.submittedAt,
+    score: { correct: attempt.correctCount, total: attempt.totalCount },
+    results: attempt.answers.map((a) => ({
+      externalId: a.question.externalId,
+      selectedIndex: a.selectedIndex,
+      correctIndex: a.question.correctIndex,
+      isCorrect: a.isCorrect,
+      explanation: a.question.explanation,
+    })),
+  };
+}
+
 export async function POST(request: Request) {
   let userId: string;
   try {
@@ -118,6 +162,15 @@ export async function POST(request: Request) {
     return jsonError(403, "FORBIDDEN", "Not your quiz session.");
   if (new Date(session.expiresAt).getTime() < Date.now())
     return jsonError(410, "EXPIRED", "Quiz session expired. Start a new quiz.");
+
+  // Idempotency: one attempt per session per user (by convention).
+  const existing = await getExistingAttemptResponse({
+    quizSessionId: session.id,
+    userId,
+  });
+  if (existing) {
+    return Response.json({ ok: true, data: existing });
+  }
 
   const questionList = session.questions.map((x) => x.question);
   const questionByExternalId = new Map(

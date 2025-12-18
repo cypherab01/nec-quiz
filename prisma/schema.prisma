@@ -124,33 +124,17 @@ model Unit {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  topics Topic[]
+  questions Question[]
 
   @@unique([subjectId, code])
   @@index([subjectId])
   @@map("unit")
 }
 
-model Topic {
-  id        String   @id @default(cuid())
-  unitId    String
-  unit      Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
-  code      String
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  questions Question[]
-
-  @@unique([unitId, code])
-  @@index([unitId])
-  @@map("topic")
-}
-
 model Question {
   id           String      @id @default(cuid())
-  topicId      String
-  topic        Topic       @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  unitId       String
+  unit         Unit        @relation(fields: [unitId], references: [id], onDelete: Cascade)
   externalId   String
   prompt       String
   choices      String[]
@@ -167,7 +151,7 @@ model Question {
   quizAttemptAnswers   QuizAttemptAnswer[]
 
   @@unique([externalId])
-  @@index([topicId])
+  @@index([unitId])
   @@map("question")
 }
 
@@ -185,7 +169,6 @@ model QuizSession {
   mode      QuizMode
   count     Int
   unitCode  String?
-  topicCode String?
   createdAt DateTime @default(now())
   expiresAt DateTime
 

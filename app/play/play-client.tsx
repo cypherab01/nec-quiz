@@ -13,10 +13,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { UnitMultiCombobox } from "@/components/units/unit-multi-combobox";
+import Link from "next/link";
 
 type SubjectRow = { code: string; name: string; _count: { units: number } };
-type UnitRow = { code: string; name: string; _count: { topics: number } };
-type TopicRow = { code: string; name: string; _count: { questions: number } };
+type UnitRow = { code: string; name: string; _count: { questions: number } };
 
 type StartQuizResponse =
   | {
@@ -34,13 +35,11 @@ const COUNTS = [25, 50, 75, 100] as const;
 export function PlayClient() {
   const [subjects, setSubjects] = useState<SubjectRow[]>([]);
   const [units, setUnits] = useState<UnitRow[]>([]);
-  const [topics, setTopics] = useState<TopicRow[]>([]);
 
   const [subjectCode, setSubjectCode] = useState<string>("");
   const [mode, setMode] = useState<"random" | "unitWise">("random");
   const [count, setCount] = useState<(typeof COUNTS)[number]>(25);
-  const [unitCode, setUnitCode] = useState<string>("");
-  const [topicCode, setTopicCode] = useState<string>("");
+  const [unitCodes, setUnitCodes] = useState<string[]>([]);
 
   const [error, setError] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(false);
@@ -77,9 +76,7 @@ export function PlayClient() {
       try {
         setError(null);
         setUnits([]);
-        setTopics([]);
-        setUnitCode("");
-        setTopicCode("");
+        setUnitCodes([]);
 
         const res = await fetch(
           `/api/subjects/${encodeURIComponent(subjectCode)}/units`
@@ -100,55 +97,18 @@ export function PlayClient() {
         }
         const data = json.data as UnitRow[];
         setUnits(data);
-        if (data.length > 0) setUnitCode(data[0].code);
+        if (data.length > 0) setUnitCodes([data[0].code]);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to load units.");
       }
     })();
   }, [subjectCode]);
 
-  useEffect(() => {
-    if (!subjectCode || !unitCode) return;
-    (async () => {
-      try {
-        setError(null);
-        setTopics([]);
-        setTopicCode("");
-
-        const res = await fetch(
-          `/api/subjects/${encodeURIComponent(
-            subjectCode
-          )}/units/${encodeURIComponent(unitCode)}/topics`
-        );
-        const text = await res.text();
-        const json = text ? JSON.parse(text) : null;
-        if (!json) {
-          setError(
-            `Empty response from topics (HTTP ${res.status}) for ${subjectCode}/${unitCode}`
-          );
-          return;
-        }
-        if (!json.ok) {
-          setError(
-            `${json.error?.code ?? "ERROR"}: ${json.error?.message ?? "Failed"}`
-          );
-          return;
-        }
-        const data = json.data as TopicRow[];
-        setTopics(data);
-        if (data.length > 0) setTopicCode(data[0].code);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to load topics.");
-      }
-    })();
-  }, [subjectCode, unitCode]);
-
   const canStart = useMemo(() => {
     if (!subjectCode) return false;
-    if (mode === "unitWise" && !unitCode) return false;
-    if (mode === "unitWise" && !topicCode) return false;
+    if (mode === "unitWise" && unitCodes.length === 0) return false;
     return true;
-  }, [mode, subjectCode, unitCode, topicCode]);
+  }, [mode, subjectCode, unitCodes.length]);
 
   async function startQuiz() {
     setError(null);
@@ -157,7 +117,7 @@ export function PlayClient() {
       const body =
         mode === "random"
           ? { subjectCode, mode, count }
-          : { subjectCode, mode, count, unitCode, topicCode };
+          : { subjectCode, mode, count, unitCodes };
 
       const res = await fetch("/api/quiz/start", {
         method: "POST",
@@ -187,6 +147,14 @@ export function PlayClient() {
         <p className="text-sm text-muted-foreground">
           Choose a subject and question count (25/50/75/100).
         </p>
+        <div className="mt-3 flex gap-2">
+          <Button variant="outline" asChild>
+            <Link href="/">Home</Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href="/leaderboard">Leaderboard</Link>
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -244,37 +212,15 @@ export function PlayClient() {
           </div>
 
           {mode === "unitWise" ? (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Unit</Label>
-                <Select value={unitCode} onValueChange={setUnitCode}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select unit" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {units.map((u) => (
-                      <SelectItem key={u.code} value={u.code}>
-                        {u.code} — {u.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Topic</Label>
-                <Select value={topicCode} onValueChange={setTopicCode}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select topic" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {topics.map((t) => (
-                      <SelectItem key={t.code} value={t.code}>
-                        {t.code} — {t.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <div className="space-y-2">
+              <Label>Unit(s)</Label>
+              <UnitMultiCombobox
+                options={units.map((u) => ({ code: u.code, name: u.name }))}
+                value={unitCodes}
+                onChange={setUnitCodes}
+              />
+              <div className="text-xs text-muted-foreground">
+                Tip: select multiple units to practice across them.
               </div>
             </div>
           ) : null}
