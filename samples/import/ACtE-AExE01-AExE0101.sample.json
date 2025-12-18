@@ -1,0 +1,73 @@
+{
+  "version": "v1",
+  "subjectCode": "ACtE",
+  "subjectName": "Computer Engineering",
+  "unitCode": "AExE01",
+  "unitName": "Concept of Basic Electrical and Electronics Engineering",
+  "topicCode": "AExE0101",
+  "topicName": "Basic concept",
+  "questions": [
+    {
+      "externalId": "AExE01-AExE0101-0001",
+      "prompt": "Ohm’s law relates which quantities?",
+      "choices": [
+        "Voltage, current, and resistance",
+        "Power and energy only",
+        "Charge and flux",
+        "Capacitance and inductance"
+      ],
+      "correctIndex": 0,
+      "explanation": "Ohm’s law is V = I·R, relating voltage (V), current (I), and resistance (R).",
+      "difficulty": "easy",
+      "tags": ["ohms-law", "basics"],
+      "references": ["NEC syllabus AExE01: Basic concept"]
+    },
+    {
+      "externalId": "AExE01-AExE0101-0002",
+      "prompt": "Unit of electric current is:",
+      "choices": ["Ampere", "Volt", "Ohm", "Watt"],
+      "correctIndex": 0,
+      "explanation": "Electric current is measured in amperes (A).",
+      "difficulty": "easy",
+      "tags": ["units", "current"],
+      "references": ["NEC syllabus AExE01: electric voltage current"]
+    },
+    {
+      "externalId": "AExE01-AExE0101-0003",
+      "prompt": "In a series circuit, which quantity remains the same through all components?",
+      "choices": ["Current", "Voltage", "Power", "Resistance"],
+      "correctIndex": 0,
+      "explanation": "In series, the same current flows through every element; voltages divide across elements.",
+      "difficulty": "easy",
+      "tags": ["series-circuit"],
+      "references": [
+        "NEC syllabus AExE01: Series and parallel electric circuits"
+      ]
+    },
+    {
+      "externalId": "AExE01-AExE0101-0004",
+      "prompt": "Kirchhoff’s Current Law (KCL) states that at a node:",
+      "choices": [
+        "Sum of currents entering equals sum of currents leaving",
+        "Sum of voltages in a loop is zero",
+        "Power is conserved in a circuit element",
+        "Resistance is constant for all materials"
+      ],
+      "correctIndex": 0,
+      "explanation": "KCL is based on charge conservation at a junction (node).",
+      "difficulty": "medium",
+      "tags": ["kcl", "kirchhoff"],
+      "references": ["NEC syllabus AExE01: Kirchhoff’s law"]
+    },
+    {
+      "externalId": "AExE01-AExE0101-0005",
+      "prompt": "A bilateral circuit element behaves the same when its terminals are interchanged. Which element is bilateral?",
+      "choices": ["Resistor", "Diode", "Transistor", "SCR"],
+      "correctIndex": 0,
+      "explanation": "An ideal resistor is bilateral; its V–I relationship is the same in both directions.",
+      "difficulty": "medium",
+      "tags": ["bilateral", "circuit-elements"],
+      "references": ["NEC syllabus AExE01: bilateral and unilateral circuits"]
+    }
+  ]
+}

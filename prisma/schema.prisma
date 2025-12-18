@@ -1,0 +1,244 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String        @id
+  name          String
+  email         String
+  emailVerified Boolean       @default(false)
+  image         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+  profile       UserProfile?
+  quizSessions  QuizSession[]
+  quizAttempts  QuizAttempt[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+enum UserRole {
+  admin
+  student
+}
+
+model UserProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      UserRole @default(student)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("user_profile")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+enum Difficulty {
+  easy
+  medium
+  hard
+}
+
+model Subject {
+  id        String   @id @default(cuid())
+  code      String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  units        Unit[]
+  quizSessions QuizSession[]
+
+  @@unique([code])
+  @@map("subject")
+}
+
+model Unit {
+  id        String   @id @default(cuid())
+  subjectId String
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  code      String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  topics Topic[]
+
+  @@unique([subjectId, code])
+  @@index([subjectId])
+  @@map("unit")
+}
+
+model Topic {
+  id        String   @id @default(cuid())
+  unitId    String
+  unit      Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  code      String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  questions Question[]
+
+  @@unique([unitId, code])
+  @@index([unitId])
+  @@map("topic")
+}
+
+model Question {
+  id           String      @id @default(cuid())
+  topicId      String
+  topic        Topic       @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  externalId   String
+  prompt       String
+  choices      String[]
+  correctIndex Int
+  explanation  String?
+  difficulty   Difficulty?
+  tags         String[]
+  references   String[]
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  quizSessionQuestions QuizSessionQuestion[]
+  quizAttemptAnswers   QuizAttemptAnswer[]
+
+  @@unique([externalId])
+  @@index([topicId])
+  @@map("question")
+}
+
+enum QuizMode {
+  random
+  unitWise
+}
+
+model QuizSession {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjectId String
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  mode      QuizMode
+  count     Int
+  unitCode  String?
+  topicCode String?
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  questions QuizSessionQuestion[]
+  attempts  QuizAttempt[]
+
+  @@index([userId])
+  @@index([subjectId])
+  @@index([expiresAt])
+  @@map("quiz_session")
+}
+
+model QuizSessionQuestion {
+  id            String      @id @default(cuid())
+  quizSessionId String
+  quizSession   QuizSession @relation(fields: [quizSessionId], references: [id], onDelete: Cascade)
+  questionId    String
+  question      Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  orderIndex    Int
+
+  @@unique([quizSessionId, questionId])
+  @@unique([quizSessionId, orderIndex])
+  @@index([questionId])
+  @@map("quiz_session_question")
+}
+
+model QuizAttempt {
+  id            String      @id @default(cuid())
+  quizSessionId String
+  quizSession   QuizSession @relation(fields: [quizSessionId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  submittedAt   DateTime    @default(now())
+  totalCount    Int
+  correctCount  Int
+
+  answers QuizAttemptAnswer[]
+
+  @@index([quizSessionId])
+  @@index([userId])
+  @@map("quiz_attempt")
+}
+
+model QuizAttemptAnswer {
+  id            String      @id @default(cuid())
+  quizAttemptId String
+  quizAttempt   QuizAttempt @relation(fields: [quizAttemptId], references: [id], onDelete: Cascade)
+  questionId    String
+  question      Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedIndex Int
+  isCorrect     Boolean
+
+  @@unique([quizAttemptId, questionId])
+  @@index([questionId])
+  @@map("quiz_attempt_answer")
+}
