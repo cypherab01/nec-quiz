@@ -6,7 +6,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { signIn, signUp } from "@/lib/auth-client";
+import { authClient, signIn, signUp } from "@/lib/auth-client";
+import { BetterAuthError } from "better-auth";
 
 type Mode = "login" | "signup";
 
@@ -14,7 +15,7 @@ export function AuthCard({ mode }: Readonly<{ mode: Mode }>) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | BetterAuthError | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const title = mode === "login" ? "Welcome back" : "Create your account";
@@ -56,21 +57,6 @@ export function AuthCard({ mode }: Readonly<{ mode: Mode }>) {
           return;
         }
       }
-
-      // Ensure a profile exists (default student) and redirect by role.
-      const profRes = await fetch("/api/profile/ensure", { method: "POST" });
-      const profJson = (await profRes.json()) as
-        | { ok: true; data: { role: "admin" | "student" } }
-        | { ok: false; error: { code: string; message: string } };
-
-      if (!profJson.ok) {
-        setError(`${profJson.error.code}: ${profJson.error.message}`);
-        return;
-      }
-
-      // Session cookie is set by Better Auth; full reload keeps things simple.
-      globalThis.location.href =
-        profJson.data.role === "admin" ? "/admin" : "/play";
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -78,8 +64,23 @@ export function AuthCard({ mode }: Readonly<{ mode: Mode }>) {
     }
   }
 
+  async function handleSocialLogin(provider: "github" | "google") {
+    try {
+      setIsSubmitting(true);
+      await authClient.signIn.social({ provider });
+    } catch (err) {
+      if (err instanceof BetterAuthError) {
+        setError(err.message);
+      } else {
+        setError("Something went wrong.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   return (
-    <div className="w-full max-w-md rounded-xl border bg-card p-6 text-card-foreground shadow-sm">
+    <div className="w-full max-w-md rounded-xl border bg-card p-6 text-card-foreground shadow-sm flex flex-col gap-4">
       <div className="mb-6 space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
         <p className="text-sm text-muted-foreground">{subtitle}</p>
@@ -95,6 +96,7 @@ export function AuthCard({ mode }: Readonly<{ mode: Mode }>) {
               onChange={(e) => setName(e.target.value)}
               required
               placeholder="Your name"
+              disabled={isSubmitting}
             />
           </div>
         ) : null}
@@ -109,6 +111,7 @@ export function AuthCard({ mode }: Readonly<{ mode: Mode }>) {
             onChange={(e) => setEmail(e.target.value)}
             required
             placeholder="you@example.com"
+            disabled={isSubmitting}
           />
         </div>
 
@@ -125,6 +128,7 @@ export function AuthCard({ mode }: Readonly<{ mode: Mode }>) {
             required
             placeholder="••••••••"
             minLength={6}
+            disabled={isSubmitting}
           />
         </div>
 
@@ -138,6 +142,27 @@ export function AuthCard({ mode }: Readonly<{ mode: Mode }>) {
           {submitLabel}
         </Button>
       </form>
+
+      <div className="flex flex-col gap-4">
+        <Button
+          variant={"outline"}
+          className="w-full"
+          onClick={() => handleSocialLogin("github")}
+          disabled={isSubmitting}
+        >
+          Sign in with GitHub
+        </Button>
+
+        <Button
+          variant={"outline"}
+          className="w-full"
+          onClick={() => handleSocialLogin("google")}
+          disabled={isSubmitting}
+        >
+          Sign in with Google
+        </Button>
+      </div>
+
       <div className="mt-6 text-sm text-muted-foreground">
         {mode === "login" ? (
           <>
