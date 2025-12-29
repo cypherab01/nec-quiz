@@ -134,7 +134,7 @@ export function AuthCard({ mode }: Readonly<{ mode: Mode }>) {
 
         {error ? (
           <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {error}
+            {error instanceof BetterAuthError ? error.message : error}
           </div>
         ) : null}
 
