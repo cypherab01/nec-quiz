@@ -13,35 +13,23 @@ export const DELETE = withErrorHandling(
 
     requireAdmin(session);
 
-    const { subjectId: rawSubjectId } = await params;
+    const { unitId: rawUnitId } = await params;
 
-    const subjectId = validateBody(idSchema, rawSubjectId);
+    const unitId = validateBody(idSchema, rawUnitId);
 
     // check if subject has units
-    const units = await prisma.unit.findMany({
-      where: { subjectId },
+    const unit = await prisma.unit.findUnique({
+      where: { id: unitId },
     });
 
-    if (units.length > 0) {
-      throw new ApiError(
-        "Subject has units, please delete the units first",
-        400,
-        "SUBJECT_HAS_UNITS"
-      );
+    if (!unit) {
+      throw new NotFoundError("Unit");
     }
 
-    const subject = await prisma.subject.findUnique({
-      where: { id: subjectId },
+    await prisma.unit.delete({
+      where: { id: unitId },
     });
 
-    if (!subject) {
-      throw new NotFoundError("Subject");
-    }
-
-    await prisma.subject.delete({
-      where: { id: subjectId },
-    });
-
-    return ok(null, "Subject deleted", 200);
+    return ok(null, "Unit deleted", 200);
   }
 );

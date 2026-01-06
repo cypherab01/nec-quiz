@@ -1,12 +1,44 @@
-export default function Home() {
+import { Section } from "@/components/shared/section";
+import { fetchOrNotFound } from "@/helpers/api/fetch-or-not-found";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import type { Subject } from "@/app/generated/prisma/client";
+
+import { redirect } from "next/navigation";
+import { Card, CardContent, CardDescription } from "@/components/ui/card";
+import Link from "next/link";
+
+export default async function Home() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session) {
+    redirect("/login");
+  }
+
+  const subjects = await fetchOrNotFound<Subject[]>("/subjects");
+
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-4xl px-4 py-12">
-        <h1 className="text-3xl font-semibold tracking-tight">NEC Quiz</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Practice Nepal Engineering Council registration exam questions.
-        </p>
+    <Section size="sm">
+      <div className="tailwind-typography">
+        <h1 className="text-center">
+          Practice <span className="text-primary">today</span> so you don't have
+          to worry <span className="text-primary">tomorrow</span>
+        </h1>
+        <p className="text-center">Select a subject and start practicing</p>
       </div>
-    </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-md">
+        {subjects.map((subject) => (
+          <Link href={`/subject/${subject.id}`} key={subject.id}>
+            <Card className="hover:scale-105 transition-all duration-300">
+              <CardContent>
+                <CardDescription>{subject.name}</CardDescription>
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+      </div>
+    </Section>
   );
 }

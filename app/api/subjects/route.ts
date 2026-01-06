@@ -15,12 +15,7 @@ export const GET = withErrorHandling(async (req) => {
     );
   }
 
-  //  include units
-  const subjects = await prisma.subject.findMany({
-    include: {
-      units: true,
-    },
-  });
+  const subjects = await prisma.subject.findMany();
 
   return ok(subjects, "Subjects fetched", 200);
 });

@@ -8,10 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient, signIn, signUp } from "@/lib/auth-client";
 import { BetterAuthError } from "better-auth";
+import { useRouter } from "next/navigation";
 
 type Mode = "login" | "signup";
 
 export function AuthCard({ mode }: Readonly<{ mode: Mode }>) {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,15 +33,18 @@ export function AuthCard({ mode }: Readonly<{ mode: Mode }>) {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
-    setIsSubmitting(true);
 
     try {
+      setError(null);
+      setIsSubmitting(true);
       if (mode === "login") {
-        const res = await signIn.email({
-          email,
-          password,
-        });
+        const res = await signIn.email(
+          {
+            email,
+            password,
+          },
+          { onSuccess: () => router.push("/") }
+        );
 
         if (res.error) {
           setError(res.error.message || "Failed to sign in.");
@@ -67,7 +72,10 @@ export function AuthCard({ mode }: Readonly<{ mode: Mode }>) {
   async function handleSocialLogin(provider: "github" | "google") {
     try {
       setIsSubmitting(true);
-      await authClient.signIn.social({ provider });
+      await authClient.signIn.social(
+        { provider },
+        { onSuccess: () => router.push("/") }
+      );
     } catch (err) {
       if (err instanceof BetterAuthError) {
         setError(err.message);
