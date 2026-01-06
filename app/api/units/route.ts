@@ -4,28 +4,17 @@ import { ok } from "@/helpers/api/response";
 import { requireSession } from "@/helpers/api/session-validation";
 import prisma from "@/lib/prisma";
 
-// export const GET = withErrorHandling(async (req) => {
-//   await requireSession(req);
-
-//   const units = await prisma.unit.findMany();
-//   return ok(units, "Units fetched", 200);
-// });
-
 export const POST = withErrorHandling(async (req) => {
   await requireSession(req);
 
-  const { subjectCode } = await req.json();
+  const { subjectId } = await req.json();
 
-  if (!subjectCode) {
-    throw new ApiError(
-      "Subject Code is required",
-      400,
-      "SUBJECT_CODE_REQUIRED"
-    );
+  if (!subjectId) {
+    throw new ApiError("Subject Id is required", 400, "SUBJECT_ID_REQUIRED");
   }
 
   const subject = await prisma.subject.findUnique({
-    where: { code: subjectCode },
+    where: { id: subjectId },
   });
 
   if (!subject) {
@@ -33,7 +22,7 @@ export const POST = withErrorHandling(async (req) => {
   }
 
   const units = await prisma.unit.findMany({
-    where: { subjectId: subject.id },
+    where: { subjectId },
   });
 
   return ok(units, "Units fetched", 200);

@@ -102,16 +102,17 @@ model Account {
  * QUESTION
  */
 model Question {
-  id           String      @id @default(cuid())
+  id           String     @id @default(cuid())
   unitId       String
-  unit         Unit        @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  question     String
+  unit         Unit       @relation(fields: [unitId], references: [id], onDelete: Cascade)
   choices      String[]
   correctIndex Int
+  difficulty   Difficulty
   explanation  String?
-  difficulty   Difficulty?
   tags         String[]
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
   @@index([unitId])
   @@map("question")
