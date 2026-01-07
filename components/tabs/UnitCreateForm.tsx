@@ -1,6 +1,11 @@
-"use client";
-
-import { Button } from "@/components/ui/button";
+import { Subject } from "@/app/generated/prisma/client";
+import { apiClient } from "@/helpers/api/axios";
+import { useUnitCreate } from "@/hooks/useUnitCreate";
+import { createUnitSchema } from "@/types/schema/create-unit";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useQuery } from "@tanstack/react-query";
+import { Controller, useForm } from "react-hook-form";
+import z from "zod";
 import {
   Card,
   CardContent,
@@ -8,23 +13,17 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "../ui/card";
+
+import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
-  Field,
-  FieldError,
   FieldGroup,
+  Field,
   FieldLabel,
+  FieldError,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { createSubjectSchema } from "@/types/schema/create-subject";
-import { createUnitSchema } from "@/types/schema/create-unit";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useForm } from "react-hook-form";
-import z from "zod";
-import { useSubjectCreate } from "./useSubjectCreate";
-import { useUnitCreate } from "./useUnitCreate";
-import { Loader2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -32,119 +31,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useQuery } from "@tanstack/react-query";
-import { apiClient } from "@/helpers/api/axios";
-import type { Subject } from "@/app/generated/prisma/client";
 
-const SubjectUnitCreateTabs = () => {
-  return (
-    <Tabs defaultValue="subject">
-      <TabsList>
-        <TabsTrigger value="subject">Subject</TabsTrigger>
-        <TabsTrigger value="unit">Unit</TabsTrigger>
-      </TabsList>
-      <TabsContent value="subject">
-        <SubjectCreateForm />
-      </TabsContent>
-      <TabsContent value="unit">
-        <UnitCreateForm />
-      </TabsContent>
-    </Tabs>
-  );
-};
-
-export default SubjectUnitCreateTabs;
-
-const SubjectCreateForm = () => {
-  const form = useForm<z.infer<typeof createSubjectSchema>>({
-    resolver: zodResolver(createSubjectSchema),
-    defaultValues: {
-      code: "",
-      name: "",
-    },
-  });
-
-  const { mutate: createSubject, isPending } = useSubjectCreate();
-
-  function onSubmit(data: z.infer<typeof createSubjectSchema>) {
-    createSubject(data, {
-      onSuccess: () => {
-        form.reset();
-      },
-    });
-  }
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Create Subject</CardTitle>
-        <CardDescription>
-          Create a new subject here. Click save when you&apos;re done.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-6">
-        <form id="create-subject-form" onSubmit={form.handleSubmit(onSubmit)}>
-          <FieldGroup>
-            {/* subject name */}
-            <Controller
-              name="name"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="form-rhf-demo-title">Name</FieldLabel>
-                  <Input
-                    {...field}
-                    id="create-subject-form-name"
-                    aria-invalid={fieldState.invalid}
-                    placeholder="Enter the name of the subject"
-                    autoComplete="off"
-                  />
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
-
-            {/* subject code */}
-            <Controller
-              name="code"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="form-rhf-demo-title">Code</FieldLabel>
-                  <Input
-                    {...field}
-                    id="create-subject-form-code"
-                    aria-invalid={fieldState.invalid}
-                    placeholder="Enter the code for the subject"
-                    autoComplete="off"
-                  />
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
-          </FieldGroup>
-        </form>
-      </CardContent>
-      <CardFooter>
-        <Button type="submit" form="create-subject-form" disabled={isPending}>
-          {isPending ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Creating Subject...
-            </>
-          ) : (
-            "Create Subject"
-          )}
-        </Button>
-      </CardFooter>
-    </Card>
-  );
-};
-
-const UnitCreateForm = () => {
+export const UnitCreateForm = () => {
   const form = useForm<z.infer<typeof createUnitSchema>>({
     resolver: zodResolver(createUnitSchema),
     defaultValues: {

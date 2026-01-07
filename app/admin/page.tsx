@@ -1,8 +1,8 @@
 import { Section } from "@/components/shared/section";
+import SubjectUnitCreateTabs from "@/components/shared/tabs/SubjectUnitCreateTabs";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import SubjectUnitCreateTabs from "./_components/subject-unit-create-tabs";
 
 const AdminPage = async () => {
   const session = await auth.api.getSession({
