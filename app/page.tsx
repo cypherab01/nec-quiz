@@ -1,12 +1,23 @@
+import type { Subject } from "@/app/generated/prisma/client";
 import { Section } from "@/components/shared/section";
-import { fetchOrNotFound } from "@/helpers/api/fetch-or-not-found";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import type { Subject } from "@/app/generated/prisma/client";
 
-import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription } from "@/components/ui/card";
+import { fetchData } from "@/helpers/api/fetch-data";
+import { ApiResponse } from "@/helpers/api/response";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+
+const fetchSubjects = async () => {
+  try {
+    const subjects = await fetchData<ApiResponse<Subject[]>>("/subjects");
+    return subjects;
+  } catch (error) {
+    console.log(error);
+    return null;
+  }
+};
 
 export default async function Home() {
   const session = await auth.api.getSession({
@@ -17,19 +28,16 @@ export default async function Home() {
     redirect("/login");
   }
 
-  const subjects = await fetchOrNotFound<Subject[]>("/subjects");
+  const subjects = await fetchSubjects();
+
+  if (!subjects) {
+    return <p className="tailwind-typography">Error fetching subjects</p>;
+  }
 
   return (
     <Section size="sm">
-      <div className="tailwind-typography">
-        <h1 className="text-center">
-          Practice <span className="text-primary">today</span> so you don't have
-          to worry <span className="text-primary">tomorrow</span>
-        </h1>
-        <p className="text-center">Select a subject and start practicing</p>
-      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-md">
-        {subjects.map((subject) => (
+        {subjects.data.map((subject) => (
           <Link href={`/subject/${subject.id}`} key={subject.id}>
             <Card className="hover:scale-105 transition-all duration-300">
               <CardContent>
